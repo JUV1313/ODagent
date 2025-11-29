@@ -3,34 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מאמן מנהיגות</title>
+  <title>מאמן AI למנהיגות</title>
   <style>
-    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 2em; direction: rtl; background: #f4f4f4; }
-    input, button { padding: 10px; width: 100%; margin-top: 10px; }
-    #response { margin-top: 20px; background: white; padding: 1em; border-radius: 5px; }
+    body { font-family: sans-serif; direction: rtl; max-width: 700px; margin: auto; background: #f0f0f0; padding: 2rem; }
+    input, button, textarea { width: 100%; padding: 0.8rem; margin-top: 0.5rem; font-size: 1rem; }
+    #response { margin-top: 1rem; background: white; padding: 1rem; border-radius: 5px; }
+    #history { margin-top: 2rem; background: #fff; padding: 1rem; border-radius: 5px; }
+    .history-item { margin-bottom: 1rem; }
+    .voice-button { margin-top: 10px; background: #4caf50; color: white; border: none; padding: 10px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <h2>סוכן AI לפיתוח מנהיגות</h2>
-  <p>שאל את המאמן שלך שאלה מקצועית:</p>
-  <input type="text" id="userInput" placeholder="איך לשפר תקשורת בצוות שלי?">
+  <h2>סוכן אימון למנהלים</h2>
+
+  <label for="userInput">שאלה/אתגר ניהולי:</label>
+  <input type="text" id="userInput" placeholder="לדוגמה: איך לעודד יוזמה בצוות שלי?">
   <button onclick="sendToCoach()">שלח</button>
+  <button class="voice-button" onclick="startVoiceInput()">דבר עם הסוכן</button>
+
   <div id="response"></div>
 
+  <div id="history">
+    <h3>היסטוריית אימון:</h3>
+    <div id="historyList"></div>
+  </div>
+
   <script>
+    let recognition;
+
+    function addToHistory(question, answer) {
+      const item = document.createElement("div");
+      item.className = "history-item";
+      item.innerHTML = `<strong>שאלה:</strong> ${question}<br><strong>תשובה:</strong> ${answer}`;
+      document.getElementById("historyList").prepend(item);
+    }
+
     async function sendToCoach() {
       const input = document.getElementById("userInput").value;
       const resBox = document.getElementById("response");
-      resBox.innerHTML = "טוען תשובה מהמאמן...";
 
-      const res = await fetch("http://localhost:5000/coach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input })
-      });
+      if (!input.trim()) {
+        resBox.innerHTML = "<em>נא להזין שאלה...</em>";
+        return;
+      }
 
-      const data = await res.json();
-      resBox.innerHTML = `<strong>תשובת המאמן:</strong><br>${data.response}`;
+      resBox.innerHTML = "המאמן חושב...";
+
+      // הדמיה של תשובה במקום שרת אמיתי
+      setTimeout(() => {
+        const replies = [
+          "עודד שיח פתוח באמצעות סבבי שיתוף בתחילת ישיבות.",
+          "בקש מכל אחד בצוות לשתף יעד אישי לשבוע הקרוב.",
+          "נסה לתאם מפגשים דו-שבועיים לשיתוף בין-מחלקתי.",
+          "תן חיזוקים חיוביים כאשר חבר צוות מציג יוזמה."
+        ];
+        const reply = replies[Math.floor(Math.random() * replies.length)];
+        resBox.innerHTML = `<strong>תשובת המאמן:</strong><br>${reply}`;
+        addToHistory(input, reply);
+      }, 1200);
+    }
+
+    function startVoiceInput() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert("הדפדפן שלך לא תומך בזיהוי קולי");
+        return;
+      }
+      recognition = new webkitSpeechRecognition();
+      recognition.lang = 'he-IL';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.start();
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("userInput").value = transcript;
+        sendToCoach();
+      };
+
+      recognition.onerror = function(event) {
+        alert("שגיאה בזיהוי קולי: " + event.error);
+      };
     }
   </script>
 </body>
