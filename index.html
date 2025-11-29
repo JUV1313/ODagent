@@ -5,26 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>מאמן AI למנהיגות</title>
   <style>
-    body { font-family: sans-serif; direction: rtl; max-width: 700px; margin: auto; background: #f0f0f0; padding: 2rem; }
-    input, button, textarea { width: 100%; padding: 0.8rem; margin-top: 0.5rem; font-size: 1rem; }
-    #response { margin-top: 1rem; background: white; padding: 1rem; border-radius: 5px; }
-    #history { margin-top: 2rem; background: #fff; padding: 1rem; border-radius: 5px; }
-    .history-item { margin-bottom: 1rem; }
-    .voice-button { margin-top: 10px; background: #4caf50; color: white; border: none; padding: 10px; cursor: pointer; }
+    body {
+      font-family: sans-serif;
+      direction: rtl;
+      max-width: 800px;
+      margin: auto;
+      background: #eef1f5;
+      padding: 2rem;
+    }
+    input, button, textarea {
+      width: 100%;
+      padding: 0.8rem;
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #0077cc;
+      color: white;
+      border: none;
+    }
+    #response, #error {
+      margin-top: 1rem;
+      background: white;
+      padding: 1rem;
+      border-radius: 5px;
+    }
+    #history {
+      margin-top: 2rem;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 5px;
+    }
+    .history-item {
+      margin-bottom: 1rem;
+      border-bottom: 1px dashed #ccc;
+      padding-bottom: 0.5rem;
+    }
+    .voice-button {
+      margin-top: 10px;
+      background: #28a745;
+    }
   </style>
 </head>
 <body>
   <h2>סוכן אימון למנהלים</h2>
 
-  <label for="userInput">שאלה/אתגר ניהולי:</label>
-  <input type="text" id="userInput" placeholder="לדוגמה: איך לעודד יוזמה בצוות שלי?">
-  <button onclick="sendToCoach()">שלח</button>
-  <button class="voice-button" onclick="startVoiceInput()">דבר עם הסוכן</button>
+  <label for="userInput">שאלה או אתגר:</label>
+  <input type="text" id="userInput" placeholder="לדוגמה: איך לחזק ביטחון עצמי בצוות?">
+  <button onclick="sendToCoach()">שלח שאלה</button>
+  <button class="voice-button" onclick="startVoiceInput()">הכתבה קולית</button>
 
   <div id="response"></div>
+  <div id="error"></div>
 
   <div id="history">
-    <h3>היסטוריית אימון:</h3>
+    <h3>היסטוריית אימון</h3>
     <div id="historyList"></div>
   </div>
 
@@ -38,29 +75,34 @@
       document.getElementById("historyList").prepend(item);
     }
 
-    async function sendToCoach() {
-      const input = document.getElementById("userInput").value;
-      const resBox = document.getElementById("response");
+    function displayResponse(text) {
+      document.getElementById("response").innerHTML = `<strong>תשובת המאמן:</strong><br>${text}`;
+    }
 
-      if (!input.trim()) {
-        resBox.innerHTML = "<em>נא להזין שאלה...</em>";
+    function sendToCoach() {
+      const input = document.getElementById("userInput").value.trim();
+      const resBox = document.getElementById("response");
+      const errBox = document.getElementById("error");
+      errBox.innerHTML = "";
+
+      if (!input) {
+        errBox.innerHTML = "<em>נא להזין שאלה.</em>";
         return;
       }
 
-      resBox.innerHTML = "המאמן חושב...";
+      resBox.innerHTML = "⏳ חושב על תשובה חכמה...";
 
-      // הדמיה של תשובה במקום שרת אמיתי
       setTimeout(() => {
         const replies = [
-          "עודד שיח פתוח באמצעות סבבי שיתוף בתחילת ישיבות.",
-          "בקש מכל אחד בצוות לשתף יעד אישי לשבוע הקרוב.",
-          "נסה לתאם מפגשים דו-שבועיים לשיתוף בין-מחלקתי.",
-          "תן חיזוקים חיוביים כאשר חבר צוות מציג יוזמה."
+          "עודד כל חבר צוות לשתף תובנה יומית בסיום כל ישיבה.",
+          "קבע זמן שבועי קצר לשיח פתוח וללא פורמליות.",
+          "שקף לצוות את חוזקותיהם כפי שאתה רואה אותם באופן אישי.",
+          "ספק דוגמאות מהשטח להצלחות קטנות שעושות שינוי גדול."
         ];
         const reply = replies[Math.floor(Math.random() * replies.length)];
-        resBox.innerHTML = `<strong>תשובת המאמן:</strong><br>${reply}`;
+        displayResponse(reply);
         addToHistory(input, reply);
-      }, 1200);
+      }, 1500);
     }
 
     function startVoiceInput() {
@@ -68,12 +110,14 @@
         alert("הדפדפן שלך לא תומך בזיהוי קולי");
         return;
       }
+
       recognition = new webkitSpeechRecognition();
       recognition.lang = 'he-IL';
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
       recognition.start();
+
       recognition.onresult = function(event) {
         const transcript = event.results[0][0].transcript;
         document.getElementById("userInput").value = transcript;
@@ -81,7 +125,7 @@
       };
 
       recognition.onerror = function(event) {
-        alert("שגיאה בזיהוי קולי: " + event.error);
+        document.getElementById("error").innerText = "שגיאה בזיהוי קולי: " + event.error;
       };
     }
   </script>
