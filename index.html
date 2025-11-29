@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מאמן מנהיגות</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 2em; direction: rtl; background: #f4f4f4; }
+    input, button { padding: 10px; width: 100%; margin-top: 10px; }
+    #response { margin-top: 20px; background: white; padding: 1em; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h2>סוכן AI לפיתוח מנהיגות</h2>
+  <p>שאל את המאמן שלך שאלה מקצועית:</p>
+  <input type="text" id="userInput" placeholder="איך לשפר תקשורת בצוות שלי?">
+  <button onclick="sendToCoach()">שלח</button>
+  <div id="response"></div>
+
+  <script>
+    async function sendToCoach() {
+      const input = document.getElementById("userInput").value;
+      const resBox = document.getElementById("response");
+      resBox.innerHTML = "טוען תשובה מהמאמן...";
+
+      const res = await fetch("http://localhost:5000/coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input })
+      });
+
+      const data = await res.json();
+      resBox.innerHTML = `<strong>תשובת המאמן:</strong><br>${data.response}`;
+    }
+  </script>
+</body>
+</html>
