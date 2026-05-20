@@ -1,61 +1,145 @@
 <!DOCTYPE html>
-<html lang="he">
+<html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>מאמן AI למנהיגות</title>
+
   <style>
     body {
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
       direction: rtl;
       max-width: 800px;
       margin: auto;
       background: #eef1f5;
       padding: 2rem;
+      color: #1f2937;
     }
+
+    h2 {
+      margin-bottom: 0.5rem;
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      margin-top: 0;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    label {
+      display: block;
+      margin-top: 1.5rem;
+      font-weight: bold;
+    }
+
     input, button, textarea {
       width: 100%;
-      padding: 0.8rem;
+      padding: 0.85rem;
       margin-top: 0.5rem;
       font-size: 1rem;
-      border-radius: 5px;
+      border-radius: 8px;
       border: 1px solid #ccc;
+      box-sizing: border-box;
     }
+
+    input:focus {
+      outline: none;
+      border-color: #0077cc;
+      box-shadow: 0 0 0 3px rgba(0, 119, 204, 0.12);
+    }
+
     button {
       background: #0077cc;
       color: white;
       border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s ease;
     }
+
+    button:hover {
+      background: #005fa3;
+    }
+
+    button:disabled {
+      background: #8aa9c2;
+      cursor: not-allowed;
+    }
+
     #response, #error {
       margin-top: 1rem;
       background: white;
       padding: 1rem;
-      border-radius: 5px;
+      border-radius: 8px;
+      line-height: 1.7;
+      white-space: pre-wrap;
     }
+
+    #response:empty,
+    #error:empty {
+      display: none;
+    }
+
+    #error {
+      color: #b00020;
+      border-right: 4px solid #b00020;
+    }
+
     #history {
       margin-top: 2rem;
       background: #fff;
       padding: 1rem;
-      border-radius: 5px;
+      border-radius: 8px;
     }
+
+    #history h3 {
+      margin-top: 0;
+    }
+
     .history-item {
       margin-bottom: 1rem;
       border-bottom: 1px dashed #ccc;
-      padding-bottom: 0.5rem;
+      padding-bottom: 0.75rem;
+      line-height: 1.6;
     }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
     .voice-button {
       margin-top: 10px;
       background: #28a745;
     }
+
+    .voice-button:hover {
+      background: #218838;
+    }
+
+    .small-note {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 0.6rem;
+    }
   </style>
 </head>
+
 <body>
   <h2>סוכן אימון למנהלים</h2>
+  <p class="subtitle">
+    כתוב אתגר ניהולי, התלבטות עם צוות, קושי בהנעה או שאלה על מנהיגות, והמאמן הדיגיטלי יחזיר לך כיוון פעולה פרקטי.
+  </p>
 
   <label for="userInput">שאלה או אתגר:</label>
   <input type="text" id="userInput" placeholder="לדוגמה: איך לחזק ביטחון עצמי בצוות?">
-  <button onclick="sendToCoach()">שלח שאלה</button>
+
+  <button id="sendButton" onclick="sendToCoach()">שלח שאלה</button>
   <button class="voice-button" onclick="startVoiceInput()">הכתבה קולית</button>
+
+  <p class="small-note">
+    טיפ: נסה לכתוב סיטואציה אמיתית וקצרה, למשל: “יש לי עובד שלא משתף פעולה בישיבות”.
+  </p>
 
   <div id="response"></div>
   <div id="error"></div>
@@ -66,53 +150,114 @@
   </div>
 
   <script>
+    const WORKER_URL = "https://lucky-mouse-6f9d.yuv-blo12.workers.dev";
+
     let recognition;
 
     function addToHistory(question, answer) {
       const item = document.createElement("div");
       item.className = "history-item";
-      item.innerHTML = `<strong>שאלה:</strong> ${question}<br><strong>תשובה:</strong> ${answer}`;
+
+      item.innerHTML = `
+        <strong>שאלה:</strong><br>
+        ${escapeHtml(question)}
+        <br><br>
+        <strong>תשובה:</strong><br>
+        ${escapeHtml(answer)}
+      `;
+
       document.getElementById("historyList").prepend(item);
     }
 
     function displayResponse(text) {
-      document.getElementById("response").innerHTML = `<strong>תשובת המאמן:</strong><br>${text}`;
+      document.getElementById("response").innerHTML = `
+        <strong>תשובת המאמן:</strong><br>
+        ${escapeHtml(text)}
+      `;
     }
 
-    function sendToCoach() {
-      const input = document.getElementById("userInput").value.trim();
+    function displayError(text) {
+      document.getElementById("error").innerHTML = `<strong>שגיאה:</strong> ${escapeHtml(text)}`;
+    }
+
+    async function sendToCoach() {
+      const inputElement = document.getElementById("userInput");
+      const sendButton = document.getElementById("sendButton");
+      const input = inputElement.value.trim();
+
       const resBox = document.getElementById("response");
       const errBox = document.getElementById("error");
+
       errBox.innerHTML = "";
 
       if (!input) {
-        errBox.innerHTML = "<em>נא להזין שאלה.</em>";
+        displayError("נא להזין שאלה.");
         return;
       }
 
       resBox.innerHTML = "⏳ חושב על תשובה חכמה...";
+      sendButton.disabled = true;
+      sendButton.innerText = "שולח למאמן...";
 
-      setTimeout(() => {
-        const replies = [
-          "עודד כל חבר צוות לשתף תובנה יומית בסיום כל ישיבה.",
-          "קבע זמן שבועי קצר לשיח פתוח וללא פורמליות.",
-          "שקף לצוות את חוזקותיהם כפי שאתה רואה אותם באופן אישי.",
-          "ספק דוגמאות מהשטח להצלחות קטנות שעושות שינוי גדול."
-        ];
-        const reply = replies[Math.floor(Math.random() * replies.length)];
+      try {
+        const coachingPrompt = `
+אתה מאמן AI למנהיגות וניהול.
+ענה בעברית.
+תן תשובה קצרה, מעשית, רגישה ולא קלישאתית.
+מבנה התשובה:
+1. הבנה קצרה של האתגר
+2. המלצה מרכזית
+3. שלושה צעדים פרקטיים
+4. משפט אחד שאפשר להגיד לצוות או לעובד
+
+השאלה של המשתמש:
+${input}
+        `;
+
+        const response = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: coachingPrompt
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error("Worker/Gemini error:", data);
+          displayError("הייתה בעיה בחיבור למודל. בדוק שה־Worker עובד ושה־API Key מוגדר נכון.");
+          resBox.innerHTML = "";
+          return;
+        }
+
+        const reply = data.answer || "לא התקבלה תשובה מהמודל.";
+
         displayResponse(reply);
         addToHistory(input, reply);
-      }, 1500);
+
+        inputElement.value = "";
+
+      } catch (error) {
+        console.error(error);
+        displayError("אירעה שגיאה בחיבור ל־Worker. בדוק שהכתובת של WORKER_URL נכונה.");
+        resBox.innerHTML = "";
+      }
+
+      sendButton.disabled = false;
+      sendButton.innerText = "שלח שאלה";
     }
 
     function startVoiceInput() {
-      if (!('webkitSpeechRecognition' in window)) {
-        alert("הדפדפן שלך לא תומך בזיהוי קולי");
+      if (!("webkitSpeechRecognition" in window)) {
+        alert("הדפדפן שלך לא תומך בזיהוי קולי. מומלץ לנסות דרך Chrome.");
         return;
       }
 
       recognition = new webkitSpeechRecognition();
-      recognition.lang = 'he-IL';
+      recognition.lang = "he-IL";
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
@@ -125,9 +270,21 @@
       };
 
       recognition.onerror = function(event) {
-        document.getElementById("error").innerText = "שגיאה בזיהוי קולי: " + event.error;
+        displayError("שגיאה בזיהוי קולי: " + event.error);
       };
     }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.innerText = text;
+      return div.innerHTML.replace(/\n/g, "<br>");
+    }
+
+    document.getElementById("userInput").addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        sendToCoach();
+      }
+    });
   </script>
 </body>
 </html>
